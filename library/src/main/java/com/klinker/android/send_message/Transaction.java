@@ -266,8 +266,13 @@ public class Transaction {
 
                 sentIntent.putExtra("message_uri", messageUri == null ? "" : messageUri.toString());
                 sentIntent.putExtra(SENT_SMS_BUNDLE, sentMessageParcelable);
+                int sentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    // Android 12 (API level 31) introduced a security requirement that all PendingIntents must explicitly declare whether they are mutable or immutable.
+                    sentFlags |= PendingIntent.FLAG_IMMUTABLE;
+                }
                 PendingIntent sentPI = PendingIntent.getBroadcast(
-                        context, messageId, sentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        context, messageId, sentIntent, sentFlags);
 
                 Intent deliveredIntent;
                 if (explicitDeliveredSmsReceiver == null) {
@@ -279,8 +284,13 @@ public class Transaction {
 
                 deliveredIntent.putExtra("message_uri", messageUri == null ? "" : messageUri.toString());
                 deliveredIntent.putExtra(DELIVERED_SMS_BUNDLE, deliveredParcelable);
+                int deliveredFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    // Android 12 (API level 31) introduced a security requirement that all PendingIntents must explicitly declare whether they are mutable or immutable.
+                    deliveredFlags |= PendingIntent.FLAG_IMMUTABLE;
+                }
                 PendingIntent deliveredPI = PendingIntent.getBroadcast(
-                        context, messageId, deliveredIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        context, messageId, deliveredIntent, deliveredFlags);
 
                 ArrayList<PendingIntent> sPI = new ArrayList<PendingIntent>();
                 ArrayList<PendingIntent> dPI = new ArrayList<PendingIntent>();
@@ -681,12 +691,17 @@ public class Transaction {
 
             intent.putExtra(MmsSentReceiver.EXTRA_CONTENT_URI, messageUri.toString());
             intent.putExtra(MmsSentReceiver.EXTRA_FILE_PATH, mSendFile.getPath());
+            int mmsFlags = PendingIntent.FLAG_CANCEL_CURRENT;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                // Android 12 (API level 31) introduced a security requirement that all PendingIntents must explicitly declare whether they are mutable or immutable.
+                mmsFlags |= PendingIntent.FLAG_IMMUTABLE;
+            }
             final PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                    context, 0, intent, mmsFlags);
 
             Uri writerUri = (new Uri.Builder())
                     .authority(context.getPackageName() + ".MmsFileProvider")
-                    .path(fileName)
+                    .path("mms_cache/" + fileName)
                     .scheme(ContentResolver.SCHEME_CONTENT)
                     .build();
             FileOutputStream writer = null;

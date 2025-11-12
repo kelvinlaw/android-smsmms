@@ -677,8 +677,22 @@ public class TransactionService extends Service implements Observer {
             }
         }
 
-        int result = mConnMgr.startUsingNetworkFeature(
-                ConnectivityManager.TYPE_MOBILE, "enableMMS");
+        int result;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            // Use reflection to call deprecated method that was removed from newer SDKs
+            try {
+                java.lang.reflect.Method method = ConnectivityManager.class.getMethod(
+                        "startUsingNetworkFeature", int.class, String.class);
+                result = (Integer) method.invoke(mConnMgr, ConnectivityManager.TYPE_MOBILE, "enableMMS");
+            } catch (Exception e) {
+                Log.e(TAG, "Error calling startUsingNetworkFeature via reflection", e);
+                result = 0;
+            }
+        } else {
+            // For Android M and above, the deprecated method is not available
+            // Return success assuming modern network handling
+            result = 0;
+        }
 
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.v(TAG, "beginMmsConnectivity: result=" + result);
@@ -703,9 +717,14 @@ public class TransactionService extends Service implements Observer {
             // cancel timer for renewal of lease
             mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
             if (mConnMgr != null && Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                mConnMgr.stopUsingNetworkFeature(
-                        ConnectivityManager.TYPE_MOBILE,
-                        "enableMMS");
+                // Use reflection to call deprecated method that was removed from newer SDKs
+                try {
+                    java.lang.reflect.Method method = ConnectivityManager.class.getMethod(
+                            "stopUsingNetworkFeature", int.class, String.class);
+                    method.invoke(mConnMgr, ConnectivityManager.TYPE_MOBILE, "enableMMS");
+                } catch (Exception e) {
+                    Log.e(TAG, "Error calling stopUsingNetworkFeature via reflection", e);
+                }
             }
         } finally {
             releaseWakeLock();

@@ -318,8 +318,13 @@ public class RetryScheduler implements Observer {
 
                     Intent service = new Intent(TransactionService.ACTION_ONALARM,
                                         null, context, TransactionService.class);
+                    int retryFlags = PendingIntent.FLAG_ONE_SHOT;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        // Android 12 (API level 31) introduced a security requirement that all PendingIntents must explicitly declare whether they are mutable or immutable.
+                        retryFlags |= PendingIntent.FLAG_IMMUTABLE;
+                    }
                     PendingIntent operation = PendingIntent.getService(
-                            context, 0, service, PendingIntent.FLAG_ONE_SHOT);
+                            context, 0, service, retryFlags);
                     AlarmManager am = (AlarmManager) context.getSystemService(
                             Context.ALARM_SERVICE);
                     am.set(AlarmManager.RTC, retryAt, operation);

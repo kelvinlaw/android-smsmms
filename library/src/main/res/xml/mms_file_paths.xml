@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Allow access to cache directory for MMS PDU files -->
+    <cache-path name="mms_cache" path="." />
+    <!-- Allow access to files directory for MMS attachments -->
+    <files-path name="mms_files" path="." />
+    <!-- Allow access to external cache for MMS -->
+    <external-cache-path name="mms_external_cache" path="." />
+    <!-- Allow access to external files for MMS -->
+    <external-files-path name="mms_external_files" path="." />
+    <!-- Allow access to root path for android-smsmms library -->
+    <root-path name="mms_root" path="." />
+</paths>

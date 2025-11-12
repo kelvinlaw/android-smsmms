@@ -5,11 +5,16 @@
 
     <application>
 
-        <provider android:name=".MmsFileProvider"
-                  android:authorities="${applicationId}.MmsFileProvider"
-                  android:enabled="true"
-                  android:grantUriPermissions="true"
-                  android:exported="false" />
+        <provider 
+            android:name=".MmsFileProvider"
+            android:authorities="${applicationId}.MmsFileProvider"
+            android:enabled="true"
+            android:grantUriPermissions="true"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/mms_file_paths" />
+        </provider>
 
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
 
