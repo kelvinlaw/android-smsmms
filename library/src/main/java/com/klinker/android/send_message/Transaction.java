@@ -147,12 +147,12 @@ public class Transaction {
                 for (String address : message.getAddresses()) {
                     sendMmsMessage(message.getText(), message.getFromAddress(), new String[] { address },
                             message.getImages(), message.getImageNames(), message.getParts(), message.getSubject(),
-                            message.getSave(), message.getMessageUri());
+                            message.getSave(), message.getMessageUri(), threadId);
                 }
             } else {
                 sendMmsMessage(message.getText(), message.getFromAddress(), message.getAddresses(),
                         message.getImages(), message.getImageNames(), message.getParts(), message.getSubject(),
-                        message.getSave(), message.getMessageUri());
+                        message.getSave(), message.getMessageUri(), threadId);
             }
         } else {
             sendSmsMessage(message.getText(), message.getAddresses(), threadId, message.getDelay(),
@@ -414,7 +414,7 @@ public class Transaction {
     }
 
     private void sendMmsMessage(String text, String fromAddress, String[] addresses, Bitmap[] image,
-                                String[] imageNames, List<Message.Part> parts, String subject, boolean save, Uri messageUri) {
+                                String[] imageNames, List<Message.Part> parts, String subject, boolean save, Uri messageUri, long threadId) {
         // merge the string[] of addresses into a single string so they can be inserted into the database easier
         String address = "";
 
@@ -514,7 +514,7 @@ public class Transaction {
 
             if (settings.getUseSystemSending()) {
                 Log.v(TAG, "using system method for sending");
-                sendMmsThroughSystem(context, subject, data, fromAddress, addresses, explicitSentMmsReceiver, save, messageUri);
+                sendMmsThroughSystem(context, subject, data, fromAddress, addresses, explicitSentMmsReceiver, save, messageUri, threadId);
             } else {
                 try {
                     MessageInfo info = getBytes(context, saveMessage, fromAddress, address.split(" "),
@@ -657,7 +657,7 @@ public class Transaction {
     public static final int DEFAULT_PRIORITY = PduHeaders.PRIORITY_NORMAL;
 
     private static void sendMmsThroughSystem(Context context, String subject, List<MMSPart> parts, String fromAddress,
-                                             String[] addresses, Intent explicitSentMmsReceiver, boolean save, Uri existingMessageUri) {
+                                             String[] addresses, Intent explicitSentMmsReceiver, boolean save, Uri existingMessageUri, long threadId) {
         try {
             final String fileName = "send." + String.valueOf(Math.abs(new Random().nextLong())) + ".dat";
             File mSendFile = new File(context.getCacheDir(), fileName);
@@ -669,6 +669,16 @@ public class Transaction {
                 PduPersister persister = PduPersister.getPduPersister(context);
                 messageUri = persister.persist(sendReq, Uri.parse("content://mms/outbox"),
                         true, settings.getGroup(), null, settings.getSubscriptionId());
+
+                // Force the thread_id to match the conversation we want
+                // PduPersister.persist() auto-assigns thread_id based on recipients,
+                // but we need to override it to match our merged conversation thread
+                if (threadId != NO_THREAD_ID && threadId > 0) {
+                    ContentValues values = new ContentValues();
+                    values.put("thread_id", threadId);
+                    int rowsUpdated = context.getContentResolver().update(messageUri, values, null, null);
+                    Log.v(TAG, "Force-updated MMS thread_id to: " + threadId + " (rows updated: " + rowsUpdated + ")");
+                }
             } else {
                 messageUri = existingMessageUri;
                 Log.v(TAG, messageUri.toString());
