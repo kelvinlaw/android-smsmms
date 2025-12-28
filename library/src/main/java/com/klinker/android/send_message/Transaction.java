@@ -740,8 +740,11 @@ public class Transaction {
             configOverrides.putInt(SmsManager.MMS_CONFIG_MAX_MESSAGE_SIZE, MmsConfig.getMaxMessageSize());
 
             if (contentUri != null) {
+                Log.v(TAG, "Sending MMS via SmsManager for URI: " + messageUri.toString());
+                Log.v(TAG, "Thread ID: " + threadId);
                 SmsManagerFactory.createSmsManager(settings).sendMultimediaMessage(context,
                         contentUri, null, configOverrides, pendingIntent);
+                Log.v(TAG, "MMS send initiated, waiting for MmsSentReceiver callback");
             } else {
                 Log.e(TAG, "Error writing sending Mms");
                 try {

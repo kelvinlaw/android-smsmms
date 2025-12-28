@@ -38,17 +38,33 @@ public class MmsSentReceiver extends StatusUpdatedReceiver {
     @Override
     public void updateInInternalDatabase(Context context, Intent intent, int resultCode) {
         Log.v(TAG, "MMS has finished sending, marking it as so, in the database");
+        Log.v(TAG, "Result code: " + resultCode);
 
         Uri uri = Uri.parse(intent.getStringExtra(EXTRA_CONTENT_URI));
-        Log.v(TAG, uri.toString());
+        Log.v(TAG, "Updating MMS at URI: " + uri.toString());
+
+        // Query current status before update
+        try {
+            android.database.Cursor cursor = context.getContentResolver().query(
+                uri, new String[]{"msg_box", "thread_id"}, null, null, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                int currentMsgBox = cursor.getInt(0);
+                long currentThreadId = cursor.getLong(1);
+                Log.v(TAG, "Current msg_box: " + currentMsgBox + ", thread_id: " + currentThreadId);
+                cursor.close();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error querying current MMS status", e);
+        }
 
         ContentValues values = new ContentValues(1);
         values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT);
-        SqliteWrapper.update(context, context.getContentResolver(), uri, values,
+        int rowsUpdated = SqliteWrapper.update(context, context.getContentResolver(), uri, values,
                 null, null);
+        Log.v(TAG, "Rows updated with SENT status: " + rowsUpdated);
 
         String filePath = intent.getStringExtra(EXTRA_FILE_PATH);
-        Log.v(TAG, filePath);
+        Log.v(TAG, "Deleting temp file: " + filePath);
         new File(filePath).delete();
     }
 
