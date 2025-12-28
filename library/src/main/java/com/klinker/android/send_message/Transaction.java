@@ -674,10 +674,26 @@ public class Transaction {
                 // PduPersister.persist() auto-assigns thread_id based on recipients,
                 // but we need to override it to match our merged conversation thread
                 if (threadId != NO_THREAD_ID && threadId > 0) {
-                    ContentValues values = new ContentValues();
-                    values.put("thread_id", threadId);
-                    int rowsUpdated = context.getContentResolver().update(messageUri, values, null, null);
-                    Log.v(TAG, "Force-updated MMS thread_id to: " + threadId + " (rows updated: " + rowsUpdated + ")");
+                    // Log what thread was assigned by persist()
+                    long assignedThreadId = 0;
+                    try {
+                        android.database.Cursor cursor = context.getContentResolver().query(
+                            messageUri, new String[]{"thread_id"}, null, null, null);
+                        if (cursor != null && cursor.moveToFirst()) {
+                            assignedThreadId = cursor.getLong(0);
+                            cursor.close();
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error querying assigned thread_id", e);
+                    }
+
+                    if (assignedThreadId != threadId) {
+                        Log.v(TAG, "Updating thread_id from " + assignedThreadId + " to " + threadId);
+                        ContentValues values = new ContentValues();
+                        values.put("thread_id", threadId);
+                        int rowsUpdated = context.getContentResolver().update(messageUri, values, null, null);
+                        Log.v(TAG, "Thread update result: " + rowsUpdated + " rows updated");
+                    }
                 }
             } else {
                 messageUri = existingMessageUri;
@@ -701,6 +717,10 @@ public class Transaction {
 
             intent.putExtra(MmsSentReceiver.EXTRA_CONTENT_URI, messageUri.toString());
             intent.putExtra(MmsSentReceiver.EXTRA_FILE_PATH, mSendFile.getPath());
+            // Pass the desired thread_id to the receiver for group messages
+            if (threadId != NO_THREAD_ID && threadId > 0) {
+                intent.putExtra("desired_thread_id", threadId);
+            }
             int mmsFlags = PendingIntent.FLAG_CANCEL_CURRENT;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                 // Android 12 (API level 31) introduced a security requirement that all PendingIntents must explicitly declare whether they are mutable or immutable.

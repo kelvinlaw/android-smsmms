@@ -57,8 +57,16 @@ public class MmsSentReceiver extends StatusUpdatedReceiver {
             Log.e(TAG, "Error querying current MMS status", e);
         }
 
-        ContentValues values = new ContentValues(1);
+        ContentValues values = new ContentValues();
         values.put(Telephony.Mms.MESSAGE_BOX, Telephony.Mms.MESSAGE_BOX_SENT);
+
+        // Also update thread_id if provided (for group messages)
+        long desiredThreadId = intent.getLongExtra("desired_thread_id", -1);
+        if (desiredThreadId > 0) {
+            values.put("thread_id", desiredThreadId);
+            Log.v(TAG, "Also updating thread_id to: " + desiredThreadId);
+        }
+
         int rowsUpdated = SqliteWrapper.update(context, context.getContentResolver(), uri, values,
                 null, null);
         Log.v(TAG, "Rows updated with SENT status: " + rowsUpdated);
